@@ -132,7 +132,18 @@ if __name__ == "__main__":
     # スレッドID設定
     thread = {"configurable": {"thread_id": "2"}}
 
-    # グラフ実行
+    # 最初の実行
+    print("=== 初期実行 ===")
     for event in graph.stream(initial_input, thread, stream_mode="updates"):
         print(event)
         print("\n")
+        if "__interrupt__" in event:  # 人間の確認が必要な時点
+            # ツール使用を承認して再開
+            print("=== ツール使用を承認して再開 ===")
+            for response in graph.stream(
+                Command(resume={"action": "continue"}),
+                thread,
+                stream_mode="updates"
+            ):
+                print(response)
+                print("\n")
