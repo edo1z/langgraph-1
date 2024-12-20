@@ -138,10 +138,10 @@ if __name__ == "__main__":
         print(event)
         print("\n")
         if "__interrupt__" in event:  # 人間の確認が必要な時点
-            # ツール使用を承認して再開
-            print("=== ツール使用を承認して再開 ===")
+            # ツール使用をキャンセル
+            print("=== ツール使用をキャンセル ===")
             for response in graph.stream(
-                Command(resume={"action": "continue"}),
+                Command(resume={"action": "feedback", "data": "ツールの使用をキャンセルしました"}),
                 thread,
                 stream_mode="updates"
             ):
