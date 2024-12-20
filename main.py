@@ -18,16 +18,13 @@ def stream_graph_updates(user_input: str):
             choice = input("\n👉 選択してください (1-3): ")
 
             if choice == "1":
-                # そのまま実行
                 action = "continue"
                 data = None
             elif choice == "2":
-                # パラメータを編集
                 place = input("👉 場所を入力してください: ")
                 action = "update"
                 data = {"place": place}
             else:
-                # キャンセル
                 action = "cancel"
                 data = None
 
@@ -36,13 +33,17 @@ def stream_graph_updates(user_input: str):
                 Command(resume={"action": action, "data": data}),
                 config
             ):
-                if "messages" in response.get("chatbot", {}):
-                    message = response["chatbot"]["messages"][-1]
-                    print("Assistant:", message.content)
+                if "messages" in response.get("chatbot", {}) or "messages" in response.get("assistant", {}):
+                    messages = response.get("chatbot", {}).get("messages", []) or \
+                             response.get("assistant", {}).get("messages", [])
+                    if messages:
+                        print("Assistant:", messages[-1].content)
         else:
-            if "messages" in chunk.get("chatbot", {}):
-                message = chunk["chatbot"]["messages"][-1]
-                print("Assistant:", message.content)
+            if "messages" in chunk.get("chatbot", {}) or "messages" in chunk.get("assistant", {}):
+                messages = chunk.get("chatbot", {}).get("messages", []) or \
+                          chunk.get("assistant", {}).get("messages", [])
+                if messages:
+                    print("Assistant:", messages[-1].content)
 
 if __name__ == "__main__":
     print("🤖 チャットボットを起動しました！")

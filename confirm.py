@@ -53,28 +53,26 @@ def create_agent():
         data = review.get("data")
 
         if action == "continue":
-            # そのまま実行
             return Command(goto="tools")
 
         elif action == "update":
-            # パラメータを編集して実行
             updated_message = {
                 "role": "ai",
                 "content": last_message.content,
                 "tool_calls": [{
                     "id": tool_call["id"],
                     "name": tool_call["name"],
-                    "args": data,  # 編集されたパラメータ
+                    "args": data,
                 }],
                 "id": last_message.id
             }
             return Command(goto="tools", update={"messages": [updated_message]})
 
         else:  # cancel
-            # キャンセルしてLLMに戻る
+            # キャンセルをツールからのフィードバックとして処理
             tool_message = {
                 "role": "tool",
-                "content": "キャンセルされました",
+                "content": "ユーザーが天気確認をキャンセルしました。",
                 "name": tool_call["name"],
                 "tool_call_id": tool_call["id"],
             }
