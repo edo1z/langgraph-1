@@ -3,17 +3,19 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
 from langgraph.graph import StateGraph, START
 from langgraph.prebuilt import ToolNode, tools_condition
-from langchain_core.messages import HumanMessage
 from typing import Annotated
 from typing_extensions import TypedDict
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
+from langgraph.checkpoint.memory import MemorySaver
 import os
 
 load_dotenv()
 
 
 def create_agent():
+    memory = MemorySaver()
+
     # State型の定義
     class State(TypedDict):
         messages: Annotated[list[BaseMessage], add_messages]
@@ -42,4 +44,7 @@ def create_agent():
     builder.add_conditional_edges("assistant", tools_condition)
     builder.add_edge("tools", "assistant")
 
-    return builder.compile()
+    return builder.compile(
+        checkpointer=memory,
+        interrupt_before=["tools"],
+    )

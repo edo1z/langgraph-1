@@ -1,15 +1,18 @@
 from confirm import create_agent
-from langchain_core.messages import HumanMessage
 
 graph = create_agent()
 
 
 def stream_graph_updates(user_input: str):
-    print("update")
-    messages = [HumanMessage(content=user_input)]
-    for event in graph.stream({"messages": messages}):
+    config = {"configurable": {"thread_id": "123"}}
+    for event in graph.stream({"messages": ("user", user_input)}, config):
         for value in event.values():
-            print("Assistant:", value["messages"][-1].content)
+            if isinstance(value, dict) and "messages" in value:
+                message = value["messages"][-1]
+                if hasattr(message, "content"):
+                    print("Assistant:", message.content)
+                else:
+                    print("Assistant:", message)
 
 
 if __name__ == "__main__":
