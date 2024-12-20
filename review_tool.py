@@ -127,10 +127,10 @@ graph.get_graph().draw_mermaid_png(output_file_path="workflow.png")
 
 if __name__ == "__main__":
     # 初期入力
-    initial_input = {"messages": [{"role": "user", "content": "hi!"}]}
+    initial_input = {"messages": [{"role": "user", "content": "what's the weather in sf?"}]}
 
     # スレッドID設定
-    thread = {"configurable": {"thread_id": "1"}}
+    thread = {"configurable": {"thread_id": "2"}}
 
     # グラフ実行
     for event in graph.stream(initial_input, thread, stream_mode="updates"):
