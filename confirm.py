@@ -13,59 +13,49 @@ import os
 load_dotenv()
 
 
-@tool
-def today_weather(place: str) -> str:
-    """今日の天気予報を返します"""
-    return "晴れ"
+def create_agent():
+    # State型の定義
+    class State(TypedDict):
+        messages: Annotated[list[BaseMessage], add_messages]
+
+    # ツールの設定
+    @tool
+    def today_weather(place: str) -> str:
+        """今日の天気予報を返します"""
+        return "晴れ"
+
+    tool_list = [today_weather]
+    llm = ChatAnthropic(
+        api_key=os.getenv("ANTHROPIC_API_KEY"), model="claude-3-5-sonnet-20240620"
+    ).bind_tools(tool_list)
+
+    # チャットボット関数
+    def chatbot(state: State):
+        return {"messages": [llm.invoke(state["messages"])]}
+
+    # グラフの設定
+    builder = StateGraph(State)
+    builder.add_node("assistant", chatbot)
+    builder.add_node("tools", ToolNode(tools=tool_list))
+    builder.set_entry_point("assistant")
+
+    builder.add_conditional_edges("assistant", tools_condition)
+    builder.add_edge("tools", "assistant")
+
+    return builder.compile()
 
 
-tool_list = [today_weather]
-llm = ChatAnthropic(
-    api_key=os.getenv("ANTHROPIC_API_KEY"), model="claude-3-5-sonnet-20240620"
-).bind_tools(tool_list)
+if __name__ == "__main__":
+    from main import stream_graph_updates
 
+    while True:
+        try:
+            user_input = input("User: ")
+            if user_input.lower() in ["quit", "exit", "q"]:
+                print("Goodbye!")
+                break
 
-# State型の定義を追加
-class State(TypedDict):
-    messages: Annotated[list[BaseMessage], add_messages]
-
-
-# ツールの実行前に割り込み
-def interrupt_before_tools():
-    user_input = input("天気を取得しますか？ (y/n): ")
-    if user_input.strip().lower() == "y":
-        return True
-    else:
-        print("終了します。")
-        exit()
-
-
-# チャットボット関数の追加
-def chatbot(state: State):
-    return {"messages": [llm.invoke(state["messages"])]}
-
-
-# グラフの設定を修正
-builder = StateGraph(State)  # dictではなくState型を使用
-
-# ノードの設定を修正
-builder.add_node("assistant", chatbot)  # llmではなくchatbot関数を使用
-builder.add_node("tools", ToolNode(tools=tool_list))
-
-# エントリーポイントの設定
-builder.set_entry_point("assistant")
-
-# 他の設定はそのまま
-builder.add_conditional_edges(
-    "assistant",
-    tools_condition,
-)
-builder.add_edge("tools", "assistant")
-
-# グラフの実行
-state = {"messages": [HumanMessage(content="今日の天気は？")]}
-graph = builder.compile(
-    interrupt_before=["tools"],
-)
-result = graph.invoke(state)
-print(result)
+            stream_graph_updates(user_input)
+        except Exception as e:
+            print(f"Error: {e}")
+            break
