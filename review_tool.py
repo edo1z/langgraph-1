@@ -126,24 +126,52 @@ graph = builder.compile(checkpointer=memory)
 graph.get_graph().draw_mermaid_png(output_file_path="workflow.png")
 
 if __name__ == "__main__":
-    # 初期入力
-    initial_input = {"messages": [{"role": "user", "content": "what's the weather in sf?"}]}
+    print("🤖 チャットボットを起動しました！")
+    print("終了するには 'quit' または 'exit' または 'q' を入力してください。")
 
-    # スレッドID設定
-    thread = {"configurable": {"thread_id": "2"}}
+    while True:
+        try:
+            # ユーザー入力を受け付ける
+            user_input = input("\nUser: ")
+            if user_input.lower() in ["quit", "exit", "q"]:
+                print("👋 Goodbye!")
+                break
 
-    # 最初の実行
-    print("=== 初期実行 ===")
-    for event in graph.stream(initial_input, thread, stream_mode="updates"):
-        print(event)
-        print("\n")
-        if "__interrupt__" in event:  # 人間の確認が必要な時点
-            # ツール使用をキャンセル
-            print("=== ツール使用をキャンセル ===")
-            for response in graph.stream(
-                Command(resume={"action": "feedback", "data": "ツールの使用をキャンセルしました"}),
-                thread,
-                stream_mode="updates"
-            ):
-                print(response)
+            # 初期入力
+            initial_input = {"messages": [{"role": "user", "content": user_input}]}
+
+            # スレッドID設定
+            thread = {"configurable": {"thread_id": "2"}}
+
+            # グラフ実行
+            for event in graph.stream(initial_input, thread, stream_mode="updates"):
+                print(event)
                 print("\n")
+                if "__interrupt__" in event:  # 人間の確認が必要な時点
+                    # 承認を求める
+                    choice = input("\n👉 ツールを実行しますか？ (Y/N): ")
+
+                    if choice.upper() == "Y":
+                        # 承認して実行
+                        print("=== ツール使用を承認して実行 ===")
+                        for response in graph.stream(
+                            Command(resume={"action": "continue"}),
+                            thread,
+                            stream_mode="updates"
+                        ):
+                            print(response)
+                            print("\n")
+                    else:
+                        # キャンセル
+                        print("=== ツール使用をキャンセル ===")
+                        for response in graph.stream(
+                            Command(resume={"action": "feedback", "data": "ツールの使用をキャンセルしました"}),
+                            thread,
+                            stream_mode="updates"
+                        ):
+                            print(response)
+                            print("\n")
+
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            break
