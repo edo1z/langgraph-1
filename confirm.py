@@ -1,11 +1,11 @@
 from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
-from langgraph.graph import StateGraph, START
+from langgraph.graph import StateGraph, START, END
 from langgraph.prebuilt import ToolNode, tools_condition
 from typing import Annotated
 from typing_extensions import TypedDict
-from langchain_core.messages import BaseMessage
+from langchain_core.messages import BaseMessage, HumanMessage
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
 import os
@@ -35,13 +35,27 @@ def create_agent():
     def chatbot(state: State):
         return {"messages": [llm.invoke(state["messages"])]}
 
+    # ツール実行前の確認処理を追加
+    def before_tools(state: State):
+        user_input = input("天気を確認しますか？ (y/n): ")
+        if user_input.lower() == "y":
+            return state
+        else:
+            # ツール実行をスキップして会話を継続
+            return {
+                "messages": state["messages"]
+                + [HumanMessage(content="天気の確認をキャンセルしました。")]
+            }
+
     # グラフの設定
     builder = StateGraph(State)
     builder.add_node("assistant", chatbot)
     builder.add_node("tools", ToolNode(tools=tool_list))
+    builder.add_node("confirm", before_tools)
     builder.set_entry_point("assistant")
 
     builder.add_conditional_edges("assistant", tools_condition)
+    builder.add_edge("confirm", "tools")
     builder.add_edge("tools", "assistant")
 
     return builder.compile(
