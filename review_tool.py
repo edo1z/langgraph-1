@@ -124,3 +124,15 @@ graph = builder.compile(checkpointer=memory)
 
 # View
 graph.get_graph().draw_mermaid_png(output_file_path="workflow.png")
+
+if __name__ == "__main__":
+    # 初期入力
+    initial_input = {"messages": [{"role": "user", "content": "hi!"}]}
+
+    # スレッドID設定
+    thread = {"configurable": {"thread_id": "1"}}
+
+    # グラフ実行
+    for event in graph.stream(initial_input, thread, stream_mode="updates"):
+        print(event)
+        print("\n")
