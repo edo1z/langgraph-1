@@ -2,12 +2,13 @@ from dotenv import load_dotenv
 from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
 from langgraph.graph import StateGraph, START, END
-from langgraph.prebuilt import ToolNode, tools_condition
-from typing import Annotated
+from langgraph.prebuilt import ToolNode
+from typing import Annotated, Literal
 from typing_extensions import TypedDict
-from langchain_core.messages import BaseMessage, HumanMessage
+from langchain_core.messages import BaseMessage, ToolMessage
 from langgraph.graph.message import add_messages
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import interrupt, Command
 import os
 
 load_dotenv()
@@ -24,6 +25,7 @@ def create_agent():
     @tool
     def today_weather(place: str) -> str:
         """今日の天気予報を返します"""
+        print(f"🔍 {place}の天気を確認中...")
         return "晴れ"
 
     tool_list = [today_weather]
@@ -35,30 +37,65 @@ def create_agent():
     def chatbot(state: State):
         return {"messages": [llm.invoke(state["messages"])]}
 
-    # ツール実行前の確認処理を追加
-    def before_tools(state: State):
-        user_input = input("天気を確認しますか？ (y/n): ")
-        if user_input.lower() == "y":
-            return state
-        else:
-            # ツール実行をスキップして会話を継続
-            return {
-                "messages": state["messages"]
-                + [HumanMessage(content="天気の確認をキャンセルしました。")]
+    # ツール実行前の確認ノード
+    def human_review(state: State) -> Command[Literal["chatbot", "tools"]]:
+        last_message = state["messages"][-1]
+        tool_call = last_message.tool_calls[-1]
+
+        # 人間に確認を求める
+        review = interrupt({
+            "question": "天気確認の実行確認",
+            "tool_call": tool_call,
+            "options": ["実行", "編集", "キャンセル"]
+        })
+
+        action = review.get("action")
+        data = review.get("data")
+
+        if action == "continue":
+            # そのまま実行
+            return Command(goto="tools")
+
+        elif action == "update":
+            # パラメータを編集して実行
+            updated_message = {
+                "role": "ai",
+                "content": last_message.content,
+                "tool_calls": [{
+                    "id": tool_call["id"],
+                    "name": tool_call["name"],
+                    "args": data,  # 編集されたパラメータ
+                }],
+                "id": last_message.id
             }
+            return Command(goto="tools", update={"messages": [updated_message]})
+
+        else:  # cancel
+            # キャンセルしてLLMに戻る
+            tool_message = {
+                "role": "tool",
+                "content": "キャンセルされました",
+                "name": tool_call["name"],
+                "tool_call_id": tool_call["id"],
+            }
+            return Command(goto="chatbot", update={"messages": [tool_message]})
+
+    def route_after_llm(state) -> Literal["human_review", END]:
+        if len(state["messages"][-1].tool_calls) == 0:
+            return END
+        return "human_review"
 
     # グラフの設定
     builder = StateGraph(State)
-    builder.add_node("assistant", chatbot)
+    builder.add_node("chatbot", chatbot)
     builder.add_node("tools", ToolNode(tools=tool_list))
-    builder.add_node("confirm", before_tools)
-    builder.set_entry_point("assistant")
+    builder.add_node("human_review", human_review)
+    builder.set_entry_point("chatbot")
 
-    builder.add_conditional_edges("assistant", tools_condition)
-    builder.add_edge("confirm", "tools")
-    builder.add_edge("tools", "assistant")
+    builder.add_conditional_edges("chatbot", route_after_llm)
+    builder.add_edge("tools", "chatbot")
+    builder.add_edge("human_review", "tools")
 
     return builder.compile(
         checkpointer=memory,
-        interrupt_before=["tools"],
     )
