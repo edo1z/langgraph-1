@@ -8,6 +8,8 @@ from langchain_anthropic import ChatAnthropic
 from langgraph.prebuilt import create_react_agent
 from langgraph.graph import MessagesState, StateGraph, START, END
 from langgraph.types import Command
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
 
@@ -25,10 +27,13 @@ def python_repl_tool(
     you should print it out with `print(...)`. This is visible to the user."""
     try:
         result = repl.run(code)
+        if "plt." in code:
+            plt.savefig('uk_gdp_chart.png')
+            plt.close()
     except BaseException as e:
         return f"Failed to execute. Error: {repr(e)}"
     result_str = (
-        f"Successfully executed:\n\`\`\`python\n{code}\n\`\`\`\nStdout: {result}"
+        f"Successfully executed:\n```python\n{code}\n```\nStdout: {result}"
     )
     return (
         result_str + "\n\nIf you have completed all tasks, respond with FINAL ANSWER."
