@@ -26,18 +26,20 @@ def python_repl_tool(
     """Use this to execute python code. If you want to see the output of a value,
     you should print it out with `print(...)`. This is visible to the user."""
     try:
-        result = repl.run(code)
         if "plt." in code:
-            plt.savefig('uk_gdp_chart.png')
-            plt.close()
+            # matplotlibを使用するコードの場合
+            code_with_save = f"""
+{code}
+plt.savefig('uk_gdp_chart.png')
+plt.close()
+"""
+            result = repl.run(code_with_save)
+        else:
+            # 通常のコードの場合
+            result = repl.run(code)
     except BaseException as e:
         return f"Failed to execute. Error: {repr(e)}"
-    result_str = (
-        f"Successfully executed:\n```python\n{code}\n```\nStdout: {result}"
-    )
-    return (
-        result_str + "\n\nIf you have completed all tasks, respond with FINAL ANSWER."
-    )
+    return f"Successfully executed:\n```python\n{code}\n```\nStdout: {result}"
 
 
 def make_system_prompt(suffix: str) -> str:
