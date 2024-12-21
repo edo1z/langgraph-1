@@ -28,9 +28,8 @@ graph.get_graph().draw_mermaid_png(output_file_path="workflow.png")
 
 if __name__ == "__main__":
     config = {"configurable": {"thread_id": "1"}}
-    result = None
     for event in graph.stream({"num": 0}, config=config):
         if "__interrupt__" in event:
             user_input = input(event["__interrupt__"][0].value)
             result = graph.invoke(Command(resume=int(user_input)), config=config)
-    print(result)
+            print("result:", result["num"])
