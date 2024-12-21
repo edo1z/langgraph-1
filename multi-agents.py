@@ -9,7 +9,8 @@ from langgraph.prebuilt import create_react_agent
 from langgraph.graph import MessagesState, StateGraph, START, END
 from langgraph.types import Command
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import os
 
@@ -30,7 +31,7 @@ def python_repl_tool(
             # matplotlibを使用するコードの場合
             code_with_save = f"""
 {code}
-plt.savefig('uk_gdp_chart.png')
+plt.savefig('chart.png')
 plt.close()
 """
             result = repl.run(code_with_save)
