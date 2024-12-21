@@ -45,12 +45,15 @@ plt.close()
 
 def make_system_prompt(suffix: str) -> str:
     return (
-        "You are a helpful AI assistant, collaborating with other assistants."
-        " Use the provided tools to progress towards answering the question."
-        " If you are unable to fully answer, that's OK, another assistant with different tools "
-        " will help where you left off. Execute what you can to make progress."
-        " If you or any of the other assistants have the final answer or deliverable,"
-        " prefix your response with FINAL ANSWER so the team knows to stop."
+        "あなたは他のAIアシスタントと協力して作業を行う、優秀なAIアシスタントです。"
+        " 与えられたツールを使用して、質問に対する回答を進めてください。"
+        " データや情報が不十分な場合は、その旨を明確に伝え、必要な情報を具体的に示してください。"
+        " 他のアシスタントと協力して作業を進める場合は、不足している情報や必要なデータを"
+        " 明確に伝えてください。"
+        " 最終的な成果物が完成し、必要な情報が全て揃っている場合のみ、"
+        " 回答の先頭に「FINAL ANSWER」と付けてください。"
+        " 不完全な状態では決して「FINAL ANSWER」は使用しないでください。"
+        " また、基本的に全て日本語で回答してください（FINAL ANSWERは英語のまま）。"
         f"\n{suffix}"
     )
 
@@ -72,7 +75,7 @@ research_agent = create_react_agent(
     llm,
     tools=[tavily_tool],
     state_modifier=make_system_prompt(
-        "You can only do research. You are working with a chart generator colleague."
+        "あなたはデータ調査専門です。チャート作成の同僚と協力して作業します。"
     ),
 )
 
@@ -102,7 +105,7 @@ chart_agent = create_react_agent(
     llm,
     [python_repl_tool],
     state_modifier=make_system_prompt(
-        "You can only generate charts. You are working with a researcher colleague."
+        "あなたはチャート作成専門です。調査担当の同僚と協力して作業します。作成するチャートの文字列は全て英語で作成してください。"
     ),
 )
 
@@ -138,8 +141,8 @@ events = graph.stream(
         "messages": [
             (
                 "user",
-                "First, get the UK's GDP over the past 5 years, then make a line chart of it. "
-                "Once you make the chart, finish.",
+                "まず、10年間のトヨタ、日産、ホンダの売上と最終利益を取得し、それらの折れ線グラフを作成してください。"
+                "グラフが完成したら終了してください。",
             )
         ],
     },
