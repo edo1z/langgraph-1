@@ -21,10 +21,6 @@ model = ChatAnthropic(model_name="claude-3-5-sonnet-latest").bind_tools(
 )
 
 
-class State(MessagesState):
-    """Simple state."""
-
-
 def call_llm(state):
     return {"messages": [model.invoke(state["messages"])]}
 
@@ -108,7 +104,7 @@ def route_after_llm(state) -> Literal[END, "human_review_node"]:
         return "human_review_node"
 
 
-builder = StateGraph(State)
+builder = StateGraph(MessagesState)
 builder.add_node(call_llm)
 builder.add_node(run_tool)
 builder.add_node(human_review_node)
@@ -157,7 +153,7 @@ if __name__ == "__main__":
                         for response in graph.stream(
                             Command(resume={"action": "continue"}),
                             thread,
-                            stream_mode="updates"
+                            stream_mode="updates",
                         ):
                             print(response)
                             print("\n")
@@ -165,9 +161,14 @@ if __name__ == "__main__":
                         # キャンセル
                         print("=== ツール使用をキャンセル ===")
                         for response in graph.stream(
-                            Command(resume={"action": "feedback", "data": "ツールの使用をキャンセルしました"}),
+                            Command(
+                                resume={
+                                    "action": "feedback",
+                                    "data": "ツールの使用をキャンセルしました",
+                                }
+                            ),
                             thread,
-                            stream_mode="updates"
+                            stream_mode="updates",
                         ):
                             print(response)
                             print("\n")
