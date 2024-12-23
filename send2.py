@@ -1,4 +1,5 @@
 import operator
+import time
 from typing import Annotated
 from typing_extensions import TypedDict
 from langgraph.types import Send
@@ -12,7 +13,7 @@ class State(TypedDict):
 
 
 def start(state: State):
-    return {"total": 0, "first_numbers": [1, 2, 3, 4, 5]}
+    return {"total": 0, "first_numbers": list(range(1, 10))}
 
 
 def continue_to_calc(state: State):
@@ -20,6 +21,7 @@ def continue_to_calc(state: State):
 
 
 def calc(number: int):
+    time.sleep(1)
     return {"calced_numbers": [number * 100]}
 
 
@@ -32,12 +34,19 @@ graph.add_node("start", start)
 graph.add_node("calc", calc)
 graph.add_node("calc_total", calc_total)
 graph.add_edge(START, "start")
-graph.add_conditional_edges("start", continue_to_calc, ["calc"])
+graph.add_conditional_edges("start", continue_to_calc)
 graph.add_edge("calc", "calc_total")
 
 app = graph.compile()
 app.get_graph().draw_mermaid_png(output_file_path="workflow.png")
 
-state = State({"first_numbers": [], "calced_numbers": [], "total": 0})
+print("開始時刻:", time.strftime("%H:%M:%S"))
+start_time = time.time()
+
+state = {"first_numbers": [], "calced_numbers": [], "total": 0}
 result = app.invoke(state)
-print(result["total"])
+
+end_time = time.time()
+print("終了時刻:", time.strftime("%H:%M:%S"))
+print(f"処理時間: {end_time - start_time:.2f}秒")
+print("合計値:", result["total"])
